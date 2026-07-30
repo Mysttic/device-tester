@@ -1,0 +1,97 @@
+name: wydanie
+
+# Wydanie wyzwala SCALENIE na master. Nie ma ręcznego tagowania — tag zakłada
+# automat. Bramką jest numer w VERSION.md: jeśli tag dla tej wersji już istnieje,
+# przebieg kończy się bez żadnego skutku. Dzięki temu operacja jest idempotentna
+# i odporna na ponowne uruchomienie czy scalenie niezwiązane z wydaniem.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wydanie
+  cancel-in-progress: false
+
+jobs:
+  wydanie:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Odczytaj wersję z VERSION.md
+        id: wersja
+        shell: bash
+        run: |
+          V=$(python tools/release_tools.py version)
+          echo "numer=$V" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+            echo "Tag v$V już istnieje — nie ma czego wydawać."
+            echo "wydawac=nie" >> "$GITHUB_OUTPUT"
+          else
+            echo "Wersja $V nie była jeszcze wydana."
+            echo "wydawac=tak" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Testy wewnętrzne
+        if: steps.wersja.outputs.wydawac == 'tak'
+        run: python device_tester.py --self-test
+
+      - name: Zestaw testów
+        if: steps.wersja.outputs.wydawac == 'tak'
+        run: python -m unittest discover -s tests -v
+
+      - name: Promuj CHANGELOG i zsynchronizuj wersję w kodzie
+        if: steps.wersja.outputs.wydawac == 'tak'
+        shell: bash
+        run: |
+          DATA=$(date -u +%Y-%m-%d)
+          # --out, nie przekierowanie: notatki mają polskie znaki i symbole,
+          # a stdout Pythona na Windows ma domyślnie kodowanie strony kodowej.
+          python tools/release_tools.py release --date "$DATA" --out NOTATKI.md
+          echo "--- notatki wydania ---"
+          cat NOTATKI.md
+
+      - name: Zapisz zmiany w repozytorium
+        if: steps.wersja.outputs.wydawac == 'tak'
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md device_tester.py; then
+            echo "Brak zmian do zapisania (sekcja CHANGELOG była już gotowa)."
+          else
+            git add CHANGELOG.md device_tester.py
+            git commit -m "Wydanie ${{ steps.wersja.outputs.numer }} [skip ci]"
+            git push origin HEAD:master
+          fi
+
+      - name: Załóż tag
+        if: steps.wersja.outputs.wydawac == 'tak'
+        shell: bash
+        run: |
+          V="${{ steps.wersja.outputs.numer }}"
+          git tag -a "v$V" -m "device-tester $V"
+          git push origin "v$V"
+
+      - name: Utwórz release
+        if: steps.wersja.outputs.wydawac == 'tak'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.wersja.outputs.numer }}
+          name: device-tester ${{ steps.wersja.outputs.numer }}
+          body_path: NOTATKI.md
+          draft: false
+          prerelease: ${{ contains(steps.wersja.outputs.numer, '-') }}
+          files: |
+            device_tester.py
+            LICENSE

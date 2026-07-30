@@ -313,6 +313,28 @@ potrzebny wyłącznie do generowania zrzutów; samo `device_tester.py` nadal nie
   zdarzenia `MYSZ` (przesunięcia względne), a nie osie analogowe, więc nie
   pojawiają się w raporcie martwej strefy.
 
+## Rozwój i wydania
+
+Praca toczy się na `develop`, `master` zawiera wyłącznie stan wydany.
+**Wersję wydaje się przez podniesienie numeru w [VERSION.md](VERSION.md)** — nie
+zakłada się tagów ręcznie:
+
+1. na `develop` podnieś numer w `VERSION.md` i opisz zmiany w `CHANGELOG.md`
+   pod `## [Nieopublikowane]`,
+2. scal PR `develop` → `master`,
+3. automat przenosi wpis CHANGELOG-a pod nowy numer, synchronizuje `__version__`
+   w kodzie, zakłada tag i publikuje release.
+
+Scalenie bez zmiany `VERSION.md` niczego nie wydaje. Artefaktem wydania jest sam
+plik `device_tester.py` — to cały program.
+
+Szczegóły: [RELEASING.md](RELEASING.md) · historia zmian: [CHANGELOG.md](CHANGELOG.md).
+
+```bash
+python device_tester.py --version        # wersja narzędzia i środowiska
+python tools/release_tools.py check      # czy obecny stan da się wydać
+```
+
 ## Licencja
 
 [MIT](LICENSE) — możesz używać, modyfikować i rozpowszechniać, także komercyjnie,
