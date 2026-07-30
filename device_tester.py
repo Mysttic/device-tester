@@ -81,6 +81,10 @@ import time
 import zlib
 from ctypes import wintypes
 
+# Ustawiane przez automat wydania z pliku VERSION.md — nie edytuj ręcznie.
+# Wersję podnosi się w VERSION.md, a workflow release.yml synchronizuje ją tutaj.
+__version__ = "1.0.0"
+
 IS_WINDOWS = sys.platform == "win32"
 
 # --------------------------------------------------------------------------- #
@@ -3407,6 +3411,7 @@ HELP_SECTIONS = (
         ("--dump-caps", "pełne dane diagnostyczne urządzeń i zakończ"),
         ("--self-test", "testy wewnętrzne (nie wymagają urządzeń) i zakończ"),
         ("-h, --help", "ta pomoc"),
+        ("--version", "wersja narzędzia i środowiska (do zgłoszeń błędów)"),
     )),
     ("FILTROWANIE", (
         ("--only TYP", "tylko keyboard | mouse | hid (można powtórzyć)"),
@@ -3442,9 +3447,20 @@ HELP_EXAMPLES = (
 )
 
 
+def version_lines():
+    """Wersja narzędzia i środowiska — pierwsza rzecz, o którą prosi się w zgłoszeniu."""
+    return [
+        "device_tester %s" % __version__,
+        "Python %s (%s)" % (sys.version.split()[0],
+                            "64-bit" if ctypes.sizeof(ctypes.c_void_p) == 8 else "32-bit"),
+        "platforma %s" % sys.platform,
+    ]
+
+
 def print_help(out: Output) -> None:
     """Pomoc pogrupowana tematycznie, w tej samej stylistyce co reszta wyjścia."""
     out.segments([("device_tester.py", "head"),
+                  (" %s" % __version__, "meta"),
                   (" — uniwersalny tester urządzeń wejściowych (Windows Raw Input)", None)])
     out.raw("")
     out.segments([("  UŻYCIE", "head")])
@@ -3478,6 +3494,8 @@ def build_parser() -> argparse.ArgumentParser:
     # Własne -h: domyślne argparse wypisałoby płaską listę bez podziału na sekcje.
     p.add_argument("-h", "--help", action="store_true",
                    help="pokaż pogrupowaną listę komend i zakończ")
+    p.add_argument("--version", action="store_true",
+                   help="pokaż wersję narzędzia i środowiska i zakończ")
     p.add_argument("--verbose", "-v", action="store_true",
                    help="pokazuj też ruch myszy i pełne raporty HID")
     p.add_argument("--list", "-l", action="store_true",
@@ -3569,9 +3587,14 @@ def main(argv=None) -> int:
     )
 
     try:
-        # Pomoc przed sprawdzeniem platformy — musi działać wszędzie.
+        # Pomoc i wersja przed sprawdzeniem platformy — muszą działać wszędzie.
         if args.help:
             print_help(out_)
+            return 0
+
+        if args.version:
+            for line in version_lines():
+                out_.raw(line)
             return 0
 
         if args.self_test:

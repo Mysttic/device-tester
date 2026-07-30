@@ -17,3 +17,6 @@ device-tester-*.log
 _probe_*.py
 _repro_*.py
 _bench_*.py
+
+# Notatki wydania budowane przez automat
+NOTATKI.md

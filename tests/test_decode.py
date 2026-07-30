@@ -1442,6 +1442,38 @@ class TestDashboard(unittest.TestCase):
         self.assertIn("█", text)
 
 
+class TestVersioning(unittest.TestCase):
+    """Rozjazd wersji, CHANGELOG-a i tagu to klasyczny błąd wydania.
+    Te testy łapią go lokalnie, zanim zrobi to release.yml."""
+
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def _changelog(self):
+        return read_text(os.path.join(self.ROOT, "CHANGELOG.md"))
+
+    def test_version_is_semver(self):
+        self.assertRegex(dt.__version__, r"^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$")
+
+    def test_changelog_has_entry_for_current_version(self):
+        base = dt.__version__.split("-")[0]
+        self.assertIn("## [%s]" % base, self._changelog(),
+                      "brak sekcji CHANGELOG dla wersji %s" % dt.__version__)
+
+    def test_changelog_has_unreleased_section(self):
+        self.assertIn("## [Nieopublikowane]", self._changelog())
+
+    def test_version_flag_reports_the_same_version(self):
+        self.assertIn(dt.__version__, "\n".join(dt.version_lines()))
+
+    def test_version_lines_mention_environment(self):
+        text = "\n".join(dt.version_lines())
+        self.assertIn("Python", text)
+        self.assertIn("bit", text)
+
+    def test_license_exists(self):
+        self.assertIn("MIT License", read_text(os.path.join(self.ROOT, "LICENSE")))
+
+
 class TestHelp(unittest.TestCase):
     def _text(self, color=False):
         out = _CapturingOutput()
