@@ -13,7 +13,7 @@ develop  ──PR──▶  master  ──▶  automat: CHANGELOG, tag, release
 
 1. **Na `develop`**: podnieś numer w [VERSION.md](VERSION.md) i opisz zmiany
    w [CHANGELOG.md](CHANGELOG.md) pod nagłówkiem `## [Nieopublikowane]`.
-2. Zrób PR `develop` → `master` i scal go, gdy CI jest zielone.
+2. Zrób PR `develop` → `master` i scal go, gdy testy na PR-ze są zielone.
 3. Gotowe. Resztę robi automat.
 
 Jeśli scalisz PR bez zmiany `VERSION.md`, nic się nie wyda — zmiana trafi
@@ -100,6 +100,20 @@ git switch -c hotfix/1.0.1 master
 
 PR `hotfix/1.0.1` → `master`. Potem **koniecznie** scal `master` z powrotem
 do `develop`.
+
+## Gdzie biegną testy
+
+| Zdarzenie | Co się uruchamia |
+|---|---|
+| PR (dowolny) | `testy` — Windows, Python 3.8 i 3.13 |
+| commit na `develop` | nic — te same zmiany przeszły już testy na PR-ze |
+| commit na `master` | `wydanie`, a ono uruchamia self-test i pełny zestaw **przed** publikacją |
+| ręcznie | oba workflow przez *Run workflow* |
+
+Wniosek praktyczny: **niczego nie wypuścimy bez testów**, bo bramka siedzi
+w `release.yml`, a nie w `tests.yml`. Jedyna nieprzetestowana ścieżka to
+bezpośredni push na `master` bez podniesienia wersji — czyli zmiana, która
+i tak niczego nie publikuje. Włączona ochrona gałęzi eliminuje i to.
 
 ## Wymagania po stronie repozytorium
 

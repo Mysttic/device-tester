@@ -1,8 +1,10 @@
 name: testy
 
+# Tylko PR-y (i ręczne uruchomienie). Commity na develop i master nie odpalają
+# testów — powtarzałyby przebieg, który zdarzył się już na PR-ze dla tych samych
+# zmian. Stan master przed wydaniem sprawdza release.yml, który uruchamia
+# self-test i pełny zestaw przed opublikowaniem czegokolwiek.
 on:
-  push:
-    branches: [master, develop]
   pull_request:
   workflow_dispatch:
 
