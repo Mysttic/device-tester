@@ -261,34 +261,6 @@ JSONL jest strumieniowy — przerwanie procesu nie psuje wcześniejszych rekord�
 w przeciwieństwie do jednej wielkiej tablicy JSON. CSV dopisuje nagłówek tylko
 przy tworzeniu pliku, więc kolejne uruchomienia dokładają wiersze.
 
-## Testy
-
-```bash
-python device_tester.py --self-test
-python -m unittest discover -s tests -v
-```
-
-`--self-test` sprawdza logikę bez żadnego urządzenia (rozmiary struktur, dekodowanie
-raportów HID, renderowanie, grupowanie, filtry). Zestaw w `tests/` dokłada test całej
-ścieżki live: zdarzenia wstrzykiwane przez `SendInput` przechodzą przez okno
-komunikatów, dekodery i wyjście. Używane są wyłącznie klawisze F13-F15, więc test
-nie wpisuje niczego w aktywne okno.
-
-### Zrzuty ekranu
-
-Obrazki w tym pliku są generowane z **prawdziwych** uruchomień narzędzia:
-
-```bash
-pip install pillow
-python docs/make_screenshots.py
-```
-
-`docs/make_screenshots.py` przechwytuje wyjście wraz z sekwencjami ANSI, odtwarza je
-w minimalnym emulatorze terminala i renderuje siatkę znaków do PNG — dlatego zrzuty
-pokazują też panel na żywo i nadpisywanie linii przy scalaniu `×N`. Pillow jest
-potrzebny wyłącznie do generowania zrzutów; samo `device_tester.py` nadal nie ma
-żadnych zależności.
-
 ## Ograniczenia
 
 - Tylko Windows (Raw Input to API Windows).
@@ -313,29 +285,10 @@ potrzebny wyłącznie do generowania zrzutów; samo `device_tester.py` nadal nie
   zdarzenia `MYSZ` (przesunięcia względne), a nie osie analogowe, więc nie
   pojawiają się w raporcie martwej strefy.
 
-## Rozwój i wydania
-
-Praca toczy się na `develop`, `master` zawiera wyłącznie stan wydany.
-**Wersję wydaje się przez podniesienie numeru w [VERSION.md](VERSION.md)** — nie
-zakłada się tagów ręcznie:
-
-1. na `develop` podnieś numer w `VERSION.md` i opisz zmiany w `CHANGELOG.md`
-   pod `## [Nieopublikowane]`,
-2. scal PR `develop` → `master`,
-3. automat przenosi wpis CHANGELOG-a pod nowy numer, synchronizuje `__version__`
-   w kodzie, zakłada tag i publikuje release.
-
-Scalenie bez zmiany `VERSION.md` niczego nie wydaje. Artefaktem wydania jest sam
-plik `device_tester.py` — to cały program.
-
-Szczegóły: [RELEASING.md](RELEASING.md) · historia zmian: [CHANGELOG.md](CHANGELOG.md).
-
-```bash
-python device_tester.py --version        # wersja narzędzia i środowiska
-python tools/release_tools.py check      # czy obecny stan da się wydać
-```
-
 ## Licencja
 
 [MIT](LICENSE) — możesz używać, modyfikować i rozpowszechniać, także komercyjnie,
 zachowując informację o prawach autorskich. Bez gwarancji.
+
+Co się zmieniło w kolejnych wersjach: [CHANGELOG.md](CHANGELOG.md).
+Chcesz zmienić coś w kodzie: [CONTRIBUTING.md](CONTRIBUTING.md).

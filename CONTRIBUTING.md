@@ -1,3 +1,67 @@
+# Rozwój
+
+Opis samego narzędzia jest w [README.md](README.md). Ten plik jest dla osób,
+które zmieniają kod.
+
+## Środowisko
+
+Do uruchomienia i testowania nie trzeba niczego instalować — wystarczy Python 3.8+
+na Windows 10/11. Pillow jest potrzebny wyłącznie do przegenerowania zrzutów ekranu.
+
+## Testy
+
+```bash
+python device_tester.py --self-test
+python -m unittest discover -s tests -v
+```
+
+`--self-test` sprawdza logikę bez żadnego urządzenia: rozmiary struktur ctypes,
+dekodowanie raportów HID, renderowanie, grupowanie i filtry. Jest wbudowany
+w narzędzie, więc działa też u użytkownika przy diagnozowaniu zgłoszenia.
+
+Zestaw w `tests/` dokłada test całej ścieżki live: zdarzenia wstrzykiwane przez
+`SendInput` przechodzą przez okno komunikatów, dekodery i wyjście. Używane są
+wyłącznie klawisze F13-F15, więc test **nie wpisuje niczego w aktywne okno**.
+
+Testy wymagające fizycznego urządzenia same się pomijają (`skipTest`), gdy go nie ma —
+dlatego przechodzą na CI, które sprzętu nie ma. Jeśli zmieniasz dekodowanie HID,
+napisz w PR-ze, na jakim urządzeniu to sprawdziłeś.
+
+## Układ kodu
+
+`device_tester.py` jest celowo **jednym plikiem** — narzędzie diagnostyczne ma dać się
+skopiować na cudzą maszynę i uruchomić bez instalowania czegokolwiek. Mapa sekcji
+i zasady, które łatwo złamać przy zmianach, są w docstringu na początku pliku.
+
+Cztery niezmienniki warte zapamiętania:
+
+- `WM_INPUT` **musi** trafić do `DefWindowProc`, inaczej system nie zwolni bufora
+  raw input; dlatego obsługa zdarzenia siedzi w `try/except`.
+- Kolory nigdy nie trafiają do pliku logu ani do eksportu — kolorowanie zachodzi
+  dopiero przy renderowaniu do konsoli.
+- Treść zdarzenia nie jest obcinana; do szerokości konsoli docinane są wyłącznie
+  metadane.
+- Znacznik czasu powstaje na wejściu do `Capture.on_raw_input`, przed rozwiązywaniem
+  urządzenia — od tego zależą `--hz` i `--chatter`.
+
+## Zrzuty ekranu
+
+Obrazki w README są generowane z **prawdziwych** uruchomień narzędzia:
+
+```bash
+pip install pillow
+python tools/make_screenshots.py
+```
+
+`tools/make_screenshots.py` przechwytuje wyjście wraz z sekwencjami ANSI, odtwarza je
+w minimalnym emulatorze terminala i renderuje siatkę znaków do PNG. Dzięki temu zrzuty
+pokazują też panel na żywo i nadpisywanie linii przy scalaniu `×N`. Wyniki lądują
+w `docs/`.
+
+Przegeneruj je, jeśli zmienił się wygląd wyjścia.
+
+---
+
 # Wydawanie wersji
 
 **Nie zakłada się tagów ręcznie.** Wydanie wyzwala scalenie na `master`, a numer
@@ -13,7 +77,7 @@ develop  ──PR──▶  master  ──▶  automat: CHANGELOG, tag, release
 
 1. **Na `develop`**: podnieś numer w [VERSION.md](VERSION.md) i opisz zmiany
    w [CHANGELOG.md](CHANGELOG.md) pod nagłówkiem `## [Nieopublikowane]`.
-2. Zrób PR `develop` → `master` i scal go, gdy CI jest zielone.
+2. Zrób PR `develop` → `master` i scal go, gdy testy na PR-ze są zielone.
 3. Gotowe. Resztę robi automat.
 
 Jeśli scalisz PR bez zmiany `VERSION.md`, nic się nie wyda — zmiana trafi
@@ -36,7 +100,6 @@ na `master` i poczeka na następne wydanie. Numer wersji jest jedynym przełącz
 8. tworzy release z notatkami z CHANGELOG-a i dołącza `device_tester.py` oraz `LICENSE`.
 
 Artefaktem wydania jest **sam plik `device_tester.py`** — to cały program.
-Użytkownik pobiera jeden plik i uruchamia; nie ma co budować ani instalować.
 
 Numer z myślnikiem (np. `1.1.0-rc1`) tworzy pre-release.
 
@@ -70,16 +133,24 @@ to już MINOR (dodanie pola) lub MAJOR (usunięcie).
 
 ```bash
 python tools/release_tools.py check      # czy da się wydać obecny stan
-python device_tester.py --self-test
-python -m unittest discover -s tests
+python tools/release_tools.py notes      # podgląd notatek, które trafią do release'u
 ```
 
 `check` symuluje promocję CHANGELOG-a bez zapisu i powie, czego brakuje.
-Podgląd notatek, które trafią do release'u:
 
-```bash
-python tools/release_tools.py notes
-```
+## Gdzie biegną testy
+
+| Zdarzenie | Co się uruchamia |
+|---|---|
+| PR (dowolny) | `testy` — Windows, Python 3.8 i 3.13 |
+| commit na `develop` | nic — te same zmiany przeszły już testy na PR-ze |
+| commit na `master` | `wydanie`, a ono uruchamia self-test i pełny zestaw **przed** publikacją |
+| ręcznie | oba workflow przez *Run workflow* |
+
+Wniosek praktyczny: **niczego nie wypuścimy bez testów**, bo bramka siedzi
+w `release.yml`, a nie w `tests.yml`. Jedyna nieprzetestowana ścieżka to
+bezpośredni push na `master` bez podniesienia wersji — czyli zmiana, która
+i tak niczego nie publikuje. Włączona ochrona gałęzi eliminuje i to.
 
 ## Po wydaniu
 
