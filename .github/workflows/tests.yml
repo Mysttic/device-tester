@@ -1,0 +1,48 @@
+name: testy
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    # Raw Input to API Windows — testy muszą biec na prawdziwym Windows.
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.8 to deklarowane minimum z README, 3.13 to wersja rozwojowa.
+        python: ["3.8", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Wersja Pythona i architektura
+        run: |
+          python --version
+          python -c "import sys; print('64-bit' if sys.maxsize > 2**32 else '32-bit')"
+
+      - name: Testy wewnętrzne (bez urządzeń)
+        run: python device_tester.py --self-test
+
+      - name: Zestaw testów
+        # Na maszynie CI nie ma fizycznych urządzeń; testy, które ich wymagają,
+        # same się pomijają (skipTest), a reszta musi przejść.
+        run: python -m unittest discover -s tests -v
+
+      - name: Import bez efektów ubocznych
+        run: python -c "import device_tester; print(len(device_tester.TARGET_USAGES), 'usage')"
+
+      - name: Lista urządzeń i zrzut diagnostyczny
+        # Sama ścieżka wykonania — na CI lista bywa pusta i to jest w porządku.
+        run: |
+          python device_tester.py --list
+          python device_tester.py --dump-caps
+
+      - name: Uruchomienie jako moduł
+        run: python -m device_tester --self-test

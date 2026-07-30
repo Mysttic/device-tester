@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Artefakty budowania
+build/
+dist/
+
+# Logi narzędzia
+device-tester-*.log
+*.log
+
+# Skrypty robocze / jednorazowe sondy diagnostyczne
+_probe_*.py
+_repro_*.py
+_bench_*.py
