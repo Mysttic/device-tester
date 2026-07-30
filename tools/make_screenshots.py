@@ -11,7 +11,7 @@ To narzędzie deweloperskie, NIE część device_tester.py. Wymaga Pillow, któr
 samo narzędzie nie potrzebuje:
 
     pip install pillow
-    python docs/make_screenshots.py
+    python tools/make_screenshots.py
 """
 
 import ctypes
@@ -28,7 +28,10 @@ import device_tester as dt  # noqa: E402
 
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
-OUT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Skrypt leży w tools/, a obrazy w docs/ — docs/ zawiera wyłącznie materiały,
+# do których odwołuje się README, bez narzędzi deweloperskich.
+OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "docs")
 
 FONT_CANDIDATES = [
     r"C:\Windows\Fonts\CascadiaMono.ttf",

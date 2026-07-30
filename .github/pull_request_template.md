@@ -9,13 +9,13 @@
 - [ ] Nowe zachowanie ma test; naprawiony błąd ma test regresji
 - [ ] Zmiany opisane w `CHANGELOG.md` pod `## [Nieopublikowane]`
 - [ ] README zaktualizowany, jeśli doszła/zmieniła się flaga
-- [ ] Zrzuty przegenerowane (`python docs/make_screenshots.py`), jeśli zmienił się wygląd wyjścia
+- [ ] Zrzuty przegenerowane (`python tools/make_screenshots.py`), jeśli zmienił się wygląd wyjścia
 
 ## Czy ten PR ma wydać wersję?
 
 Wydanie wyzwala **zmiana numeru w `VERSION.md`** — nie tag, nie sam merge.
 
-- [ ] **Tak** — numer w `VERSION.md` podniesiony wg SemVer ([RELEASING.md](../RELEASING.md)),
+- [ ] **Tak** — numer w `VERSION.md` podniesiony wg SemVer ([CONTRIBUTING.md](../CONTRIBUTING.md)),
       a `python tools/release_tools.py check` przechodzi
 - [ ] **Nie** — `VERSION.md` bez zmian, praca poczeka na kolejne wydanie
 

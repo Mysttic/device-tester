@@ -12,7 +12,7 @@ zsynchronizuje __version__ w device_tester.py, przeniesie sekcję
 Nie zakładaj tagów ręcznie. Nie edytuj __version__ w device_tester.py —
 to pole jest ustawiane przez automat wydania.
 
-Numerowanie (SemVer dla narzędzia CLI, szczegóły w RELEASING.md):
+Numerowanie (SemVer dla narzędzia CLI, szczegóły w CONTRIBUTING.md):
   MAJOR — usunięcie flagi, zmiana jej znaczenia, usunięcie pola z eksportu
   MINOR — nowa flaga, nowe pole eksportu, nowa sekcja podsumowania
   PATCH — naprawa błędu, wydajność, układ konsoli, dokumentacja
