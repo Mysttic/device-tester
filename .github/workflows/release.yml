@@ -7,6 +7,13 @@ name: wydanie
 on:
   push:
     branches: [master]
+    # Pierwsza bramka: scalenie, które nie rusza VERSION.md, w ogóle nie
+    # uruchamia joba — udokumentowany przebieg no-op z 2026-09-14 kosztował
+    # minutę rozliczeniową ×2 tylko po to, żeby stwierdzić „nie ma czego
+    # wydawać". Druga bramka — odczyt VERSION.md i sprawdzenie tagu — zostaje
+    # w jobie, a workflow_dispatch nie ma tego filtra i jest furtką awaryjną.
+    paths:
+      - VERSION.md
   workflow_dispatch:
 
 permissions:
@@ -18,7 +25,19 @@ concurrency:
 
 jobs:
   wydanie:
+    # Wydawać wolno wyłącznie z `master`. Przy triggerze `push` warunek jest
+    # zawsze spełniony, więc normalna ścieżka się nie zmienia. Odcina to
+    # natomiast ręczne *Run workflow* odpalone z innej gałęzi: GitHub w oknie
+    # „Run workflow" proponuje listę wszystkich gałęzi, a krok „Zapisz zmiany
+    # w repozytorium" robi `git push origin HEAD:master` — bez tego warunku
+    # dispatch z `develop` wypchnąłby tamten HEAD na master z pominięciem
+    # PR-a i bramki testów (albo padł non-fast-forward już PO promocji
+    # CHANGELOG-a, bez tagu i bez release'u).
+    if: github.ref_name == 'master'
     runs-on: windows-latest
+    # Bez tego zawieszony job nalicza domyślne 6 h, czyli 720 minut
+    # rozliczeniowych (Windows liczy się 2×).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:

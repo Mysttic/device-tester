@@ -1,17 +1,60 @@
 name: testy
 
-# Tylko PR-y (i ręczne uruchomienie). Commity na develop i master nie odpalają
+# Testy biegną wyłącznie na PR-ze z `develop` do `master` (oraz przy ręcznym
+# uruchomieniu). Commity na develop, master i gałęziach roboczych nie odpalają
 # testów — powtarzałyby przebieg, który zdarzył się już na PR-ze dla tych samych
 # zmian. Stan master przed wydaniem sprawdza release.yml, który uruchamia
 # self-test i pełny zestaw przed opublikowaniem czegokolwiek.
+#
+# Świadoma konsekwencja: PR do `master` z gałęzi innej niż `develop` (np.
+# hotfix/*) oraz PR zmieniający wyłącznie dokumentację nie uruchomi żadnego
+# joba, a GitHub zaraportuje taki przebieg jako ZIELONY — pominięty job liczy
+# się jak sukces. Tak ma być. Nie ma tu joba-zaślepki ani bramki bez `if:`,
+# która robiłaby z tego czerwony wynik. Siatką bezpieczeństwa jest release.yml:
+# przed publikacją i tak uruchamia self-test i pełny zestaw testów.
 on:
   pull_request:
+    # `branches` dotyczy gałęzi DOCELOWEJ (base). Gałąź źródłową sprawdza
+    # warunek `if:` przy jobie — `on:` nie umie po niej filtrować.
+    branches: [master]
+    # Dokumentacja nie wymaga testów, a PR na README kosztowałby dwa joby
+    # na Windows (mnożnik 2×). Lista jest wyliczona, a nie `**.md`, bo
+    # VERSION.md też jest `.md`, a PR podnoszący wersję to PR wydawniczy —
+    # on ma być przetestowany. Pominięcie następuje tylko wtedy, gdy WSZYSTKIE
+    # zmienione pliki są na tej liście; nowy plik spoza niej po prostu
+    # uruchomi testy, czyli pomyłka idzie w bezpieczną stronę.
+    #
+    # Na liście są WYŁĄCZNIE pliki, których nie czyta żaden test. Poza nią —
+    # obok VERSION.md — świadomie zostają CHANGELOG.md i LICENSE: to żywe
+    # wejścia testów czytane z dysku (tests/test_decode.py: TestVersioning,
+    # test_license_exists; tests/test_release.py: TestRealRepositoryState).
+    # Ich pominięcie przeniosłoby błąd z PR-a, gdzie kosztuje jedno
+    # przewinięcie, do release.yml — w środek wydania, po podbiciu wersji
+    # na master, a przed tagiem i release'em.
+    paths-ignore:
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'docs/**'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
+
+# Kolejny push do otwartego PR-a anuluje poprzedni matrix zamiast dopuszczać
+# go do końca. Przy testach to bezpieczne — nic nie publikują.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows:
+    # Testy tylko dla PR-a z `develop`. Człon `workflow_dispatch` jest
+    # konieczny: przy ręcznym uruchomieniu `github.head_ref` jest puste i bez
+    # niego nie ruszyłby żaden job.
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'develop'
     # Raw Input to API Windows — testy muszą biec na prawdziwym Windows.
     runs-on: windows-latest
+    # Bez tego zawieszony job nalicza domyślne 6 h, czyli 720 minut
+    # rozliczeniowych na wariant matrixa (Windows liczy się 2×).
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

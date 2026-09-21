@@ -85,7 +85,10 @@ na `master` i poczeka na następne wydanie. Numer wersji jest jedynym przełącz
 
 ## Co robi automat
 
-[release.yml](.github/workflows/release.yml) przy każdym pushu na `master`:
+[release.yml](.github/workflows/release.yml) przy pushu na `master`, który zmienia
+`VERSION.md` (albo uruchomiony ręcznie przez *Run workflow* — **wyłącznie z gałęzi
+`master`**; z innej gałęzi job jest pomijany, bo automat i tak pushuje `HEAD`
+na `master`):
 
 1. czyta numer z `VERSION.md`,
 2. **jeśli tag `vX.Y.Z` już istnieje — kończy bez żadnego skutku** (to jest bramka:
@@ -142,15 +145,24 @@ python tools/release_tools.py notes      # podgląd notatek, które trafią do r
 
 | Zdarzenie | Co się uruchamia |
 |---|---|
-| PR (dowolny) | `testy` — Windows, Python 3.8 i 3.13 |
+| PR `develop` → `master` | `testy` — Windows, Python 3.8 i 3.13 |
+| PR do `master` z innej gałęzi (np. `hotfix/*`) | nic — job jest pomijany, a przebieg GitHub pokaże jako **zielony** |
+| PR zmieniający wyłącznie dokumentację (`README.md`, `CONTRIBUTING.md`, `docs/`) | nic — dokumentacja nie wymaga testów; `VERSION.md`, `CHANGELOG.md` i `LICENSE` **nie** są na tej liście, bo czytają je testy |
+| PR do `develop` | nic |
 | commit na `develop` | nic — te same zmiany przeszły już testy na PR-ze |
-| commit na `master` | `wydanie`, a ono uruchamia self-test i pełny zestaw **przed** publikacją |
+| commit na `master` zmieniający `VERSION.md` | `wydanie`, a ono uruchamia self-test i pełny zestaw **przed** publikacją |
+| commit na `master` bez zmiany `VERSION.md` | nic |
 | ręcznie | oba workflow przez *Run workflow* |
 
 Wniosek praktyczny: **niczego nie wypuścimy bez testów**, bo bramka siedzi
 w `release.yml`, a nie w `tests.yml`. Jedyna nieprzetestowana ścieżka to
 bezpośredni push na `master` bez podniesienia wersji — czyli zmiana, która
 i tak niczego nie publikuje. Włączona ochrona gałęzi eliminuje i to.
+
+Świadoma decyzja: PR spoza `develop` **nie uruchamia testów i mimo to jest
+zielony** (pominięty job GitHub liczy jak sukces). Nie ma joba-zaślepki, który
+miałby z tego zrobić czerwony wynik. Jeśli kiedyś włączysz ochronę `master`
+z wymaganym checkiem `testy`, pamiętaj, że taki PR nigdy go nie zaraportuje.
 
 ## Po wydaniu
 
@@ -171,6 +183,14 @@ git switch -c hotfix/1.0.1 master
 
 PR `hotfix/1.0.1` → `master`. Potem **koniecznie** scal `master` z powrotem
 do `develop`.
+
+Na takim PR-ze `testy` się nie uruchomią (biegną tylko dla PR-a z `develop`),
+więc **odpal je ręcznie** przez *Run workflow* na workflow `testy`, wybierając
+gałąź `hotfix/*`. To krok obowiązkowy, a nie alternatywa dla bramki
+w `release.yml`: ta uruchamia pełny zestaw wyłącznie na Pythonie 3.13, podczas
+gdy deklarowane minimum z README to 3.8. Matrix 3.8 + 3.13 żyje tylko
+w `tests.yml` — bez ręcznego uruchomienia hotfix wyjdzie do ludzi
+nieprzetestowany na najstarszym wspieranym Pythonie.
 
 ## Wymagania po stronie repozytorium
 
